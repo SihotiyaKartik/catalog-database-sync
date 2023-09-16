@@ -5,6 +5,7 @@ go 1.21.1
 require (
 	github.com/fatih/color v1.15.0
 	github.com/lib/pq v1.10.9
+	github.com/robfig/cron/v3 v3.0.1
 )
 
 require (

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 )
 
 func init(){
@@ -28,8 +29,15 @@ func main(){
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to PostgreSQL database successfully")
-	
-	catalogsync.FetchAndStore(db)
+
+	c := cron.New()
+	_, e := c.AddFunc("0 2 * * *", func() {catalogsync.FetchAndStore(db)})
+
+	if e != nil{
+		fmt.Printf("Error while adding FetchAndStore function for cron job: %v", e)
+	}
+
+	c.Start()
 
 	r.Run(":8080")
 }

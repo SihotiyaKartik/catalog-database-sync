@@ -19,10 +19,6 @@ type CategoriesResponse struct {
 	Categories []Category `json:"categories"`
 }
 
-type Image struct {
-	Href string `json:"href"`
-}
-
 type Product struct {
 	CategoryId uint `json:"category_id"`
     Sku int `json:"sku"`
@@ -40,11 +36,15 @@ type ProductsResponse struct {
 	Products []Product `json:"products"`
 }
 
+/**
+Function for retrieving categories data from monk-commerce database
+*/
+
 func getCategoriesFromAdminData(base_url string, page int, client http.Client) (CategoriesResponse, error){
 
 	var categoriesResponse CategoriesResponse
 
-	categories_url := fmt.Sprintf("%s/task/categories?limit=1&page=%d", base_url, page)
+	categories_url := fmt.Sprintf("%s/task/categories?limit=100&page=%d", base_url, page)
 
 	req, err := http.NewRequest("GET", categories_url, nil)
 	if err != nil {
@@ -70,6 +70,9 @@ func getCategoriesFromAdminData(base_url string, page int, client http.Client) (
 	return categoriesResponse, nil
 }
 
+/**
+Function for retrieving products data from monk-commerce database
+*/
 func getProductsFromAdminData(base_url string, page int, categoryId string, client http.Client) (ProductsResponse, error){
 
 	var productsResponse ProductsResponse
