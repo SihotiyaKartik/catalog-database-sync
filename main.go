@@ -1,6 +1,7 @@
 package main
 
 import (
+	"ecommerce_store/catalogsync"
 	"ecommerce_store/db"
 	"fmt"
 	"log"
@@ -18,6 +19,8 @@ func init(){
 
 func main(){
 
+	catalogsync.FetchAndStore()
+
 	/**
 	Intializing the Gin router
 	*/
@@ -33,5 +36,4 @@ func main(){
 	fmt.Println("Connected to PostgreSQL database successfully")
 
 	r.Run(":8080")
-
 }
