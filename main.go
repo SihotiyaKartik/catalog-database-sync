@@ -18,22 +18,18 @@ func init(){
 }
 
 func main(){
-
-	catalogsync.FetchAndStore()
-
 	/**
 	Intializing the Gin router
 	*/
     r := gin.Default()
 
-	_, err := db.Connect()
+	db, err := db.Connect()
 	if err != nil{
 		log.Fatal(err)
 	}
-
-	// defer db.Close()
-
 	fmt.Println("Connected to PostgreSQL database successfully")
+	
+	catalogsync.FetchAndStore(db)
 
 	r.Run(":8080")
 }

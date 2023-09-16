@@ -1,27 +1,19 @@
 package catalogsync
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"time"
 
+	"ecommerce_store/utils"
+
 	"github.com/fatih/color"
+	"gorm.io/gorm"
 )
 
-type Category struct {
-	Id string `json:"id"`
-	Name string `json:"name"`
-}
 
-type CategoriesResponse struct {
-	Page int `json:"page"`
-	Categories []Category `json:"categories"`
-}
-
-func FetchAndStore(){
+func FetchAndStore(db *gorm.DB){
 
 	/**
 	Configuring the color of logs printed in terminal
@@ -42,36 +34,49 @@ func FetchAndStore(){
 
 	for {
 
-		categories_url := fmt.Sprintf("%s/task/categories?limit=100&page=%d", base_url, categories_page) 
-		
-		req, err := http.NewRequest("GET", categories_url, nil)
-		if err != nil {
-			red("Error occurred while creating GET categories API request:", err)
-			return
-		}
-
-		req.Header.Set("x-api-key", os.Getenv("EXTERNAL_API_KEY"))
-		
-		resp, err := client.Do(req)
+		categoriesResponse, err := getCategoriesFromAdminData(base_url, categories_page, *client)
 		if err != nil{
-			red("Error occureed while making GET categories API request:", err)
-			return		
+			red(err)
 		}
 
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			red("Error occurrde while reading response body:", err)
-			return
-		}
-
-		var categoriesResponse CategoriesResponse
-		if err := json.Unmarshal(body, &categoriesResponse); err != nil{
-			red("Error occurred while unmarshing categories response, err")
-			return
-		}
-
-		if categoriesResponse.Categories == nil{
+		if categoriesResponse.Categories == nil || categories_page > 3{
 			break
+		}
+
+		for _, category := range categoriesResponse.Categories {
+			_, err = utils.FindCategoriesBySuperId(db, category.Id)
+			if err != nil {
+				
+				categoryData, e := utils.AddCategoriesData(utils.Category(category), db)
+				if e != nil {
+					red(e)
+				}
+
+				fmt.Println(categoryData)
+
+				products_page := 1
+
+				for {
+					productsResponse, err := getProductsFromAdminData(base_url, products_page, category.Id, *client)
+					if err != nil{
+						red(err)
+					}
+
+					if productsResponse.Products == nil{
+						break
+					}
+
+					for _, product := range productsResponse.Products{
+						fmt.Println(product.Images)
+						if err := utils.AddProductsData(categoryData.ID, utils.Product(product), db); err != nil{
+							red(err)
+						}
+					}
+
+					products_page++
+				}
+				
+			}
 		}
 
 		categories_page++

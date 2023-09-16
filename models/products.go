@@ -1,8 +1,12 @@
 package models
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
+
+type Image struct{
+    Href string `json:"href"`
+}
 
 type Products struct {
 	gorm.Model
@@ -11,9 +15,9 @@ type Products struct {
     Sku int `json:"sku"`
 	Name string `json:"name"`
     SalePrice float64 `json:"salePrice"`
-    Images []map[string] string `gorm:"type:jsonb" json:"images"`
+    Images []byte `gorm:"type:jsonb" json:"images"`
     Digital bool `json:"digital"`
-    ShippingCost float64 `json:"shippingCost"`
+    ShippingCost string `json:"shippingCost"`
     Description string `json:"description"`
     CustomerReviewCount int `json:"customerReviewCount"`
 }
