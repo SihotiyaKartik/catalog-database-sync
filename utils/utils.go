@@ -26,7 +26,9 @@ type Product struct {
     CustomerReviewCount int `json:"customerReviewCount"`
 }
 
-
+/**
+function for checking if a particular category exist in our database through its super_id
+*/
 
 func FindCategoriesBySuperId(db *gorm.DB, super_id string) (models.Categories, error){
 
@@ -38,6 +40,11 @@ func FindCategoriesBySuperId(db *gorm.DB, super_id string) (models.Categories, e
 		return category, nil
 	}
 }
+
+/**
+Converting shippingCost into string
+as shippingCost coming have multiple type
+*/
 
 func shippingCostToString(shippingCost interface{})(string){
 	var shippingCostString string
@@ -53,6 +60,10 @@ func shippingCostToString(shippingCost interface{})(string){
 	return shippingCostString
 }
 
+/**
+function for adding category record in our database
+*/
+
 func AddCategoriesData(category Category, db *gorm.DB)(models.Categories, error){
 	newCategory := models.Categories{
 		Name: category.Name,
@@ -66,6 +77,10 @@ func AddCategoriesData(category Category, db *gorm.DB)(models.Categories, error)
 	return newCategory, nil
 
 }
+
+/**
+function for adding product record in our database
+*/
 
 func AddProductsData(categoryId uint, product Product, db *gorm.DB)(error){
 

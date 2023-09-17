@@ -11,6 +11,13 @@ import (
 	"gorm.io/gorm"
 )
 
+type CategoryResult struct{
+	ID uint `json:"id"`
+	SuperId string `json:"superId"`
+	Name string `json:"name"`
+	TotalProducts int `json:"totalProducts"`
+}
+
 func GetCategories(c *gin.Context, db *gorm.DB){
 
 	/**
@@ -32,6 +39,10 @@ func GetCategories(c *gin.Context, db *gorm.DB){
 	pageVal := c.DefaultQuery("page", "1")
 	limitVal := c.DefaultQuery("limit", "10")
 
+	/**
+	Checking for any potential errors in page and limit
+	*/
+
 	page, err := strconv.Atoi(pageVal)
 	if err != nil || page < 1{
 		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid page parameter"})
@@ -45,7 +56,7 @@ func GetCategories(c *gin.Context, db *gorm.DB){
 	}
 
 	/**
-	Calculating total pages using total record and query limit
+	Calculating total pages using total record and limit
 	*/
 
 	var totalRecord int64
@@ -53,10 +64,15 @@ func GetCategories(c *gin.Context, db *gorm.DB){
 
 	totalPages := int(math.Ceil(float64(totalRecord)/float64(limit)))
 
-	var categories []models.Categories
-	offset := (page - 1)*limit
-	db.Order("total_products DESC").Offset(offset).Limit(limit).Find(&categories)
+	/**
+	Getting categories, sorted in descending order by total products
+	Configuring resultant data in CategoryResult data type
+	*/
 
+	var categories []CategoryResult
+	offset := (page - 1)*limit
+	db.Model(&models.Categories{}).Order("total_products DESC").Offset(offset).Limit(limit).Find(&categories)
+	
 	response := gin.H{
 		"page": page,
 		"categories":categories,

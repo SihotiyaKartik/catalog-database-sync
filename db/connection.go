@@ -1,7 +1,6 @@
 package db
 
 import (
-	"ecommerce_store/models"
 	"fmt"
 	"os"
 	"strconv"
@@ -51,7 +50,7 @@ func Connect()(*gorm.DB, error) {
 	Used for making migrations to reflect new changes in database schema
 	*/
 
-	db.AutoMigrate(&models.Categories{}, &models.Products{})
+	//db.AutoMigrate(&models.Categories{}, &models.Products{})
 	
 	return db, nil
 	

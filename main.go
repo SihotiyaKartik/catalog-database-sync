@@ -42,6 +42,7 @@ func main(){
 	c.Start()
 
 	r.GET("/shop/categories", func(c *gin.Context) {catalog.GetCategories(c, db)})
+	r.GET("/shop/products", func(c *gin.Context) {catalog.GetProducts(c, db)})
 
 	r.Run(":8080")
 }
