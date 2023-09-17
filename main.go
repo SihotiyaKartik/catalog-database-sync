@@ -1,10 +1,12 @@
 package main
 
 import (
-	"ecommerce_store/catalogsync"
 	"ecommerce_store/db"
 	"fmt"
 	"log"
+
+	"ecommerce_store/catalog"
+	"ecommerce_store/catalogsync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -38,6 +40,8 @@ func main(){
 	}
 
 	c.Start()
+
+	r.GET("/shop/categories", func(c *gin.Context) {catalog.GetCategories(c, db)})
 
 	r.Run(":8080")
 }

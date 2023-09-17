@@ -9,7 +9,7 @@ type Image struct{
 }
 
 type Products struct {
-	gorm.Model
+	gorm.Model `json:"-"`
     Category Categories `gorm:"foreignKey:CategoryId"`
     CategoryId uint `json:"category_id"`
     Sku int `json:"sku"`

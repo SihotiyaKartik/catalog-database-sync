@@ -19,6 +19,10 @@ type CategoriesResponse struct {
 	Categories []Category `json:"categories"`
 }
 
+/**
+Making shippingCost type as interface{} for adjusting values between float and string
+*/
+
 type Product struct {
 	CategoryId uint `json:"category_id"`
     Sku int `json:"sku"`
