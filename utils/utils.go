@@ -28,17 +28,36 @@ type Product struct {
 
 /**
 function for checking if a particular category exist in our database through its super_id
+If exist then update, otherwise add
 */
 
-func FindCategoriesBySuperId(db *gorm.DB, super_id string) (models.Categories, error){
+func FindCategoriesBySuperId(db *gorm.DB, super_id string, name string) (models.Categories, error){
 
 	var category models.Categories
 
 	if err := db.Where("super_id = ?", super_id).First(&category).Error; err != nil {
-		return category, err
-	} else {
-		return category, nil
+		/**
+		We didnt found a record for this particular super_id
+		so creating a new record
+		*/
+		newCategory := models.Categories{
+            SuperId: super_id,
+            Name: name,
+            TotalProducts: 0,
+        }
+
+		if err := db.Create(&newCategory).Error; err != nil{
+			return newCategory, err
+		}
+		return newCategory, nil
 	}
+
+	category.Name = name
+	if err := db.Save(&category).Error; err != nil{
+		return category, err
+	}
+	return category, nil
+
 }
 
 /**
@@ -108,5 +127,56 @@ func AddProductsData(categoryId uint, product Product, db *gorm.DB)(error){
 	}
 
 	return nil
+
+}
+
+func AddOrUpdateProductsData(product Product, id uint, db *gorm.DB){
+
+	var prod models.Products
+
+	shippingCost := shippingCostToString(product.ShippingCost)
+	imagesJSON, err := json.Marshal(product.Images)
+	if err != nil {
+		fmt.Println("Error occurred while marshaling product images", err)
+        return
+    }
+
+	if err := db.Where("sku = ?", product.Sku).First(&prod).Error; err != nil {
+
+		/**
+		We didnt found a record for this particular sku
+		so creating a new record
+		*/
+
+		newProduct := models.Products{
+			Sku: product.Sku,
+			Name: product.Name,
+			SalePrice: product.SalePrice,
+			CategoryId: id,
+			Images: imagesJSON,
+			Digital: product.Digital,
+			ShippingCost: shippingCost,
+			Description: product.Description,
+			CustomerReviewCount: product.CustomerReviewCount,
+		}
+
+		db.Create(&newProduct)
+	}
+
+	/**
+	Updating the existing product record 
+	*/
+
+	prod.Name = product.Name
+	prod.SalePrice = product.SalePrice
+	prod.Description = product.Description
+	prod.CustomerReviewCount = product.CustomerReviewCount
+	prod.Digital = product.Digital
+	prod.ShippingCost = shippingCost
+
+	if err := db.Save(&prod).Error; err != nil {
+		fmt.Println("Error occurred while updating products data", err)
+		return
+	}
 
 }

@@ -1,51 +1,131 @@
 package catalogsync
 
 import (
-	"net/http"
-	"os"
-	"time"
-
+	"ecommerce_store/consumer"
+	"ecommerce_store/models"
+	"ecommerce_store/producer"
 	"ecommerce_store/utils"
+	"fmt"
+	"net/http"
 
 	"github.com/fatih/color"
 	"gorm.io/gorm"
 )
 
 /**
-Cron function scheduled every daya for fetching categories and its products
-and storing it in our database
+Configuring the color of logs printed in terminal
+For better readability
 */
 
-func FetchAndStore(db *gorm.DB){
+var green = color.New(color.FgGreen).PrintlnFunc()
+var red = color.New(color.FgRed).PrintlnFunc()
 
-	/**
-	Configuring the color of logs printed in terminal
-	For better readability
-	*/
-	green := color.New(color.FgGreen).PrintlnFunc()
-	red := color.New(color.FgRed).PrintlnFunc()
+func FetchAndStoreProducts(db *gorm.DB, base_url string, client *http.Client){
 
-	green("Cron function started")
+	pro, err := producer.GetProducer()
+	if err != nil{
+		red(err)
+	}
 
-	base_url := os.Getenv("EXTERNAL_BASE_URL")
-
-	/**
-	Creating an http client for listening request
-	*/
-
-	client := &http.Client {
-		Timeout: 15 * time.Second,
+	con, err := consumer.GetConsumer()
+	if err != nil{
+		red(err)
 	}
 
 	/**
-	For paginating the API in order to get all categories
+	Handling our products message queue
+	checking if there is old request present (failed previously)
+	processing that request
 	*/
+
+	handleProductConsumer(con)
+
+	/**
+	Fetching category_id in batches from our database
+	Fetching products associated with this category_id from admin database
+	*/
+
+	var count int64
+
+	db.Table("categories").Count(&count)
+
+	limit := 100
+	offset := 0
+
+	for offset < int(count) {
+		var categories []models.Categories
+
+		d := db.Table("categories").Offset(offset).Limit(limit).Find(&categories)
+		if d.Error != nil{
+			fmt.Println(d.Error)
+		}
+
+		for _, categ := range categories {
+			
+			products_page := 1
+
+			for {
+				productsResponse, err := getProductsFromAdminData(base_url, products_page, categ.SuperId, *client, pro)
+				if err != nil{
+					red(err)
+				}
+
+				if productsResponse.Products == nil {
+					break
+				}
+
+				/**
+				Saving prooducts in our database
+				*/
+
+				for _, product := range productsResponse.Products {
+					utils.AddOrUpdateProductsData(utils.Product(product), categ.ID, db)
+				}
+
+
+			}
+
+		}
+
+		
+
+	}
+
+}
+
+
+/**
+part of Cron function scheduled every day for fetching categories
+and storing it in our database
+*/
+
+func FetchAndStoreCategories(db *gorm.DB, base_url string, client *http.Client){
+
+	/**
+	Creating instacne of producer and consumer
+	*/
+
+	pro, err := producer.GetProducer()
+	if err != nil{
+		red(err)
+	}
+
+	con, err := consumer.GetConsumer()
+	if err != nil{
+		red(err)
+	}
+
+	/**
+	First checking if there is some request present in category queue or not
+	Which failed in previous process
+	*/
+	handleCategoryConsumer(con)
 
 	categories_page := 1
 
 	for {
 
-		categoriesResponse, err := getCategoriesFromAdminData(base_url, categories_page, *client)
+		categoriesResponse, err := getCategoriesFromAdminData(base_url, categories_page, *client, pro)
 		if err != nil{
 			red(err)
 		}
@@ -63,55 +143,28 @@ func FetchAndStore(db *gorm.DB){
 			If it is not present, then only add the category and
 			its coressponding products in our database
 			*/
-			_, err = utils.FindCategoriesBySuperId(db, category.Id)
-			if err != nil {
-				
-				/**
-				Saving category record in our database
-				*/
-				categoryData, e := utils.AddCategoriesData(utils.Category(category), db)
-				if e != nil {
-					red(e)
-				}
-
-				/**
-				For paginating the API in order to get all products
-				*/
-
-				products_page := 1
-
-				for {
-					productsResponse, err := getProductsFromAdminData(base_url, products_page, category.Id, *client)
-					if err != nil{
-						red(err)
-					}
-
-					if productsResponse.Products == nil{
-						break
-					}
-
-					for _, product := range productsResponse.Products{
-						/**
-						Saving product record in our database
-						*/
-						if err := utils.AddProductsData(categoryData.ID, utils.Product(product), db); err != nil{
-							red(err)
-						}
-					}
-
-					products_page++
-				}
-				
-			}
+			_, err = utils.FindCategoriesBySuperId(db, category.Id, category.Name)
+			
+			 
 		}
 
 		categories_page++
 
 	}
 	
-	green("Cron functtion completed")
+	
 }
 
+func FetchAndStore(db *gorm.DB, base_url string, client *http.Client){
 
+	green("Cron functtion Started")
+
+	FetchAndStoreCategories(db, base_url, client)
+
+	FetchAndStoreProducts(db, base_url, client)
+
+	green("Cron functtion completed")
+
+}
 	
 
